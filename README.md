@@ -1,2 +1,2 @@
-# Tesi-Magistrale
-Tesi Magistrale_TimeSeries
+# Master's Thesis
+
