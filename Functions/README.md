@@ -1,1 +1,1 @@
-Thesis function folder
+Thesis functions folder
