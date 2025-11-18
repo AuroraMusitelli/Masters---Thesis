@@ -1,5 +1,5 @@
 ## Funzione di valutazione forecast (RMSE e MAE)
-score_forecast_complete <- function(true, pred) {
+score_forecast <- function(true, pred) {
   
   # ---- Calcolo errori base ----
   errors <- true - pred
@@ -37,3 +37,4 @@ score_forecast_complete <- function(true, pred) {
   
   return(result)
 }
+
