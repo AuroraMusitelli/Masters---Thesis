@@ -1,35 +1,39 @@
 ## Funzione di valutazione forecast (RMSE e MAE)
-score_forecast <- function(y_true, y_hat) {
+score_forecast_complete <- function(true, pred) {
   
-  stopifnot(all(dim(y_true) == dim(y_hat)))
+  # ---- Calcolo errori base ----
+  errors <- true - pred
   
-  cols <- colnames(y_true)
-  results <- data.frame(
-    Serie = cols,
-    RMSE = NA,
-    MAE  = NA,
-    MAPE = NA,
-    RMSE_rel = NA
-  )
+  RMSE  <- apply(errors, 2, function(e) sqrt(mean(e^2, na.rm = TRUE)))
+  MSFE  <- apply(errors, 2, function(e) mean(e^2, na.rm = TRUE))
+  MAE   <- apply(errors, 2, function(e) mean(abs(e), na.rm = TRUE))
   
-  for (j in seq_along(cols)) {
-    yt <- y_true[, j]
-    yh <- y_hat[, j]
-    
-    rmse <- sqrt(mean((yt - yh)^2, na.rm = TRUE))
-    mae  <- mean(abs(yt - yh), na.rm = TRUE)
-    
-    # Per MAPE evito divisioni per 0
-    mape <- mean(abs((yt - yh) / ifelse(yt == 0, NA, yt)), na.rm = TRUE) * 100
-    
-    # RMSE relativo = RMSE / sd della serie
-    rmse_rel <- rmse / sd(yt, na.rm = TRUE)
-    
-    results[j, "RMSE"]     <- rmse
-    results[j, "MAE"]      <- mae
-    results[j, "MAPE"]     <- mape
-    results[j, "RMSE_rel"] <- rmse_rel
+  # ---- Deviazione standard della serie vera ----
+  sd_y  <- apply(true, 2, sd)
+  
+  # ---- RMSE relativo ----
+  RMSE_rel <- RMSE / sd_y
+  
+  # ---- Funzione di interpretazione ----
+  interpret_rmse_rel <- function(r){
+    if (r < 0.10) return("Eccellente")
+    if (r < 0.20) return("Ottimo")
+    if (r < 0.30) return("Buono")
+    if (r < 0.50) return("Accettabile")
+    return("Scarso")
   }
   
-  return(results)
+  Interpretazione <- sapply(RMSE_rel, interpret_rmse_rel)
+  
+  # ---- Output in dataframe ordinato ----
+  result <- data.frame(
+    Serie = colnames(true),
+    RMSE = RMSE,
+    MSFE = MSFE,
+    MAE = MAE,
+    RMSE_rel = RMSE_rel,
+    Interpretazione = Interpretazione
+  )
+  
+  return(result)
 }
