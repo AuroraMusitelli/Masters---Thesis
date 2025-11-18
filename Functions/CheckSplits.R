@@ -8,5 +8,5 @@ check_splits <- function(Y_mat, T1, T2) {
     N_osservazioni = End - Start + 1,
     Percentuale = round(100 * N_osservazioni / T_tot, 1))}
 
-check_splits(Y_mat_CO2_std,    T1_CO2_std,    T2_CO2_std)
-check_splits(Y_mat_ENERGY_std, T1_ENERGY_std, T2_ENERGY_std)
+check_splits(Y_mat_CO2,    T1_CO2,    T2_CO2)
+check_splits(Y_mat_ENERGY, T1_ENERGY, T2_ENERGY) 
