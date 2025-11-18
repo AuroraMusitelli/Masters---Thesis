@@ -1,16 +1,35 @@
 ## Funzione di valutazione forecast (RMSE e MAE)
-score_forecast <- function(y_true, y_hat){
-  # allineo eventuali nomi mancanti
-  colnames(y_hat) <- colnames(y_true)
-  e <- y_true - y_hat
-  MSFE  <- colMeans(e^2, na.rm = TRUE)     # Mean Squared Forecast Error
-  RMSE  <- sqrt(MSFE)                      # Root Mean Squared Error
-  MAE   <- colMeans(abs(e), na.rm = TRUE)  # Mean Absolute Error
-  tibble(
-    Serie = colnames(y_true),
-    RMSE = RMSE,
-    MSFE = MSFE,
-    MAE = MAE,
-    RMSE_media = mean(RMSE),
-    MSFE_media = mean(MSFE),
-    MAE_media = mean(MAE))}
+score_forecast <- function(y_true, y_hat) {
+  
+  stopifnot(all(dim(y_true) == dim(y_hat)))
+  
+  cols <- colnames(y_true)
+  results <- data.frame(
+    Serie = cols,
+    RMSE = NA,
+    MAE  = NA,
+    MAPE = NA,
+    RMSE_rel = NA
+  )
+  
+  for (j in seq_along(cols)) {
+    yt <- y_true[, j]
+    yh <- y_hat[, j]
+    
+    rmse <- sqrt(mean((yt - yh)^2, na.rm = TRUE))
+    mae  <- mean(abs(yt - yh), na.rm = TRUE)
+    
+    # Per MAPE evito divisioni per 0
+    mape <- mean(abs((yt - yh) / ifelse(yt == 0, NA, yt)), na.rm = TRUE) * 100
+    
+    # RMSE relativo = RMSE / sd della serie
+    rmse_rel <- rmse / sd(yt, na.rm = TRUE)
+    
+    results[j, "RMSE"]     <- rmse
+    results[j, "MAE"]      <- mae
+    results[j, "MAPE"]     <- mape
+    results[j, "RMSE_rel"] <- rmse_rel
+  }
+  
+  return(results)
+}
