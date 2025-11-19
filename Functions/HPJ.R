@@ -17,7 +17,7 @@ make_hpj_cycle <- function(tsib) {
     if (anyNA(v)) {
       v <- zoo::na.approx(v, na.rm = FALSE)
     }
-    # Filtro HPJ: di default stima automaticamente lambda e la penalitÃ 
+    # Filtro HPJ: di default stima automaticamente lambda e la penalit
     fit <- hpj(v)
     
     # Trend HPJ (con salti)
@@ -35,5 +35,6 @@ make_hpj_cycle <- function(tsib) {
     as_tsibble(index = Date_idx)
   return(tsib_out)
 }
+
 
 
