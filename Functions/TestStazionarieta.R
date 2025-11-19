@@ -1,4 +1,4 @@
-## ----- 5.1 Funzione di analisi serie storiche (ADF, Ljung-Box, ACF, PACF) -----
+## Funzione di analisi serie storiche (ADF, Ljung-Box, ACF, PACF) -----
 analisi_serie_ts <- function(ts_data, max_lag = 36, ljung_lags = c(1,2,3,6,12,18,24,36)){
   if(!tsibble::is_tsibble(ts_data)) stop("Il dataset deve essere un oggetto tsibble.")
   
@@ -48,7 +48,7 @@ analisi_serie_ts <- function(ts_data, max_lag = 36, ljung_lags = c(1,2,3,6,12,18
 }
 
 
-## ----- 5.2 Sintesi risultati ADF / Ljung-Box -----
+## Sintesi risultati ADF / Ljung-Box -----
 sintesi_risultati_ts <- function(risultati, nome_blocco="Serie"){
   serie_nomi <- names(risultati$ADF)   # Estraggo i nomi delle serie analizzate
   
@@ -75,77 +75,5 @@ sintesi_risultati_ts <- function(risultati, nome_blocco="Serie"){
   return(output)}
 
 
-## ----- 5.3 Trasformazione (differenziazione/detrend) -----
-trasforma_serie <- function(df, tabella, ts_ref){
-  decisioni <- tabella %>%
-    dplyr::mutate(
-      Regola = dplyr::case_when(
-        Stationary_Drift==FALSE & Stationary_Trend==FALSE ~ "diff",     # se la serie non stazionaria con drift O con trend = differenziazione 
-        Stationary_Drift==FALSE & Stationary_Trend==TRUE  ~ "detrend",  # trend deterministico = detrendizzazione
-        Stationary_Drift==TRUE  & Stationary_Trend==TRUE  ~ "none",     # se stazionaria = nessuna trasformazione
-        TRUE ~ "none"))
-  df_out <- df
-  trasformazioni <- list()
-  # Applico le trasformazioni decise nella funzione per ogni serie storica
-  for(serie in decisioni$Serie){
-    if(!(serie %in% colnames(df))) next
-    x <- df[[serie]]
-    regola <- decisioni$Regola[match(serie, decisioni$Serie)]
-    applied <- list(Differenziazione=FALSE, Detrend=FALSE)
-    # Differenziazione
-    if(regola=="diff"){
-      x <- c(x[1], diff(x))
-      applied$Differenziazione <- TRUE}
-    # Detrend tramite regressione lineare
-    if(regola=="detrend"){
-      time_idx <- seq_along(x)
-      fit <- lm(x ~ time_idx)
-      x <- residuals(fit)
-      applied$Detrend <- TRUE}
-    # Aggiorno i dati con la serie trasformate
-    df_out[[serie]] <- x
-    trasformazioni[[serie]] <- applied}
-  # Ricreo l'oggetto ts con le stesse specifiche temporali della serie originale
-  ts_out <- ts(df_out, start=start(ts_ref), frequency=frequency(ts_ref))
-  
-  # Creo tabella riepilogativa delle trasformazioni
-  tabella_trasf <- tibble::tibble(
-    Serie = names(trasformazioni),
-    Differenziazione = sapply(trasformazioni, function(x) x$Differenziazione),
-    Detrend = sapply(trasformazioni, function(x) x$Detrend))
-  return(list(data=df_out, ts=ts_out, tabella=tabella_trasf))}
-
-
-## ----- 5.4 Sintesi finale post-trasformazioni -----
-sintesi_stazionarieta_finale <- function(risultati_final, nome_blocco="Serie"){
-  serie_nomi <- names(risultati_final$ADF)
-  # Costruisco tabella di stazionarietà finale
-  output <- lapply(serie_nomi, function(serie){
-    adf_drift <- risultati_final$ADF[[serie]][["drift"]]
-    adf_trend <- risultati_final$ADF[[serie]][["trend"]]
-    
-    tibble(
-      Serie = serie,
-      Stationary_Drift = adf_drift$Stationary,
-      Stationary_Trend = adf_trend$Stationary,
-      Stazionaria_Finalmente = adf_drift$Stationary & adf_trend$Stationary)}) %>% bind_rows()
-  cat("\n--- Sintesi Stazionarietà Finale:", nome_blocco, "---\n")
-  print(output)
-  return(output)}
-
-
-## ----- 5.5 Report finale: trasformazioni + stazionarietà -----
-report_finale <- function(tabella_trasf, tabella_finale, nome_blocco="Serie"){
-  # Unisco risultati di trasformazioni e stazionarietà finale
-  report <- dplyr::left_join(tabella_trasf, tabella_finale, by="Serie")
-  cat("\n=============== REPORT FINALE:", nome_blocco, "===============\n")
-  print(report, n=Inf)
-  
-  # Evidenzio le serie che NON sono ancora stazionarie
-  non_staz <- report %>% filter(Stazionaria_Finalmente == FALSE)
-  if(nrow(non_staz)>0){
-    cat("\n*** Serie NON stazionarie dopo le trasformazioni:", nome_blocco, "***\n")
-    print(non_staz, n=Inf)}
-  return(report)}
 
 
