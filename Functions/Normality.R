@@ -7,7 +7,7 @@ salva_grafico_distribuzione <- function(df, settore, fonte, metrica, output_fold
   
   # Istogramma con curva normale stimata
   p1 <- ggplot(df_sub, aes(x = Value)) +
-    geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "red", alpha = 0.5) + # istogramma con densità
+    geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "red", alpha = 0.5) + # istogramma con densitÃ 
     stat_function(fun = dnorm, 
                   args = list(mean = mean(df_sub$Value), sd = sd(df_sub$Value)), 
                   color = "blue", linewidth = 1) + # curva normale stimata con media e sd dei dati
@@ -28,7 +28,7 @@ salva_grafico_distribuzione <- function(df, settore, fonte, metrica, output_fold
   ggsave(filename = file.path(output_folder, paste0("QQ_", nome_file)), plot = p2, width = 8, height = 6, dpi = 300)}
 
 
-# Funzione per applicare test di normalità a ciascuna serie storica (Sector / Source / Metric)
+# Funzione per applicare test di normalitÃ  a ciascuna serie storica (Sector / Source / Metric)
 test_normalita <- function(df_long) {
   risultati <- df_long %>%
     filter(!is.na(Value)) %>%   # rimuovo valori mancanti
@@ -49,3 +49,6 @@ test_normalita <- function(df_long) {
     ) %>%
     arrange(Metric, Sector, Source)   # ordino risultati
   return(risultati)}
+
+
+
