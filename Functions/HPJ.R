@@ -1,5 +1,6 @@
-# Pre-processing con filtro HPJ: serie cicliche stazionarie
-# Funzione: prende un tsibble con Month, Date_idx + colonne numeriche e restituisce SOLO la componente ciclica (y - trend HPJ)
+# Pre-processing con filtro HPJ: serie cicliche stazionarie 
+
+## Funzione: prende un tsibble con Month, Date_idx + colonne numeriche e restituisce SOLO la componente ciclica (y - trend HPJ)
 make_hpj_cycle <- function(tsib) {
   tmp <- as_tibble(tsib)
   
@@ -11,13 +12,13 @@ make_hpj_cycle <- function(tsib) {
   tmp[cols_to_filter] <- lapply(tmp[cols_to_filter], function(x) {
     v <- as.numeric(x)
     
-    # Se tutta NA lascio cosi (evito crash) 
+    # Se tutta NA lascio cosi (evito errori) 
     if (all(is.na(v))) return(v)
     # Se ci sono NA, interpolazione lineare semplice
     if (anyNA(v)) {
-      v <- zoo::na.approx(v, na.rm = FALSE)
-    }
-    # Filtro HPJ: di default stima automaticamente lambda e la penalit
+      v <- zoo::na.approx(v, na.rm = FALSE)}
+    
+    # Filtro HPJ: di default stima automaticamente lambda e la penality
     fit <- hpj(v)
     
     # Trend HPJ (con salti)
@@ -30,11 +31,11 @@ make_hpj_cycle <- function(tsib) {
     cycle[is.na(v)] <- NA
     return(cycle)
   })
+  
   # Ricostruisco tsibble con Date_idx come indice
   tsib_out <- tmp %>%
     as_tsibble(index = Date_idx)
   return(tsib_out)
 }
-
 
 
