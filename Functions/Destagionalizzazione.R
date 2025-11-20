@@ -1,4 +1,4 @@
-#### Funzione: Destagionalizzazione X-13    
+## Funzione: Destagionalizzazione X-13ARIMA-SEATS      
 destag_tsibble <- function(tsib) {
   
   # Converto il tsibble in tibble per manipolarlo più facilmente
@@ -42,7 +42,7 @@ destag_tsibble <- function(tsib) {
       tmp[[col]] <- as.numeric(sa)
       
     }, error = function(e) {
-      # Alcune serie possono dare errore (troppo corte, costanti, ecc.)
+      # Alcune serie possono non avere stagionalità (troppo corte, costanti, ecc.)
       warning("Errore con la serie ", col, 
               ": la lascio originale (nessuna destagionalizzazione).")
     })
