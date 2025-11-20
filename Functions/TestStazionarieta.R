@@ -48,6 +48,7 @@ analisi_serie_ts <- function(ts_data, max_lag = 36, ljung_lags = c(1,2,3,6,12,18
 }
 
 
+
 ## Sintesi risultati ADF / Ljung-Box -----
 sintesi_risultati_ts <- function(risultati, nome_blocco="Serie"){
   serie_nomi <- names(risultati$ADF)   # Estraggo i nomi delle serie analizzate
