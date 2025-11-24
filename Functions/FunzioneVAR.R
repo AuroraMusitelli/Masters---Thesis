@@ -8,7 +8,7 @@
 ##   1) per ogni lag p = 1,...,max_p stima un VAR in modo ricorsivo usando una rolling expanding window
 ##   2) genera previsioni one-step-ahead fuori campione
 ##   3) calcola gli errori di previsione (RMSE, MAE)
-##   4) verifica la stabilità del VAR (moduli delle radici)
+##   4) verifica la stability del VAR (moduli delle radici)
 ##   5) restituisce un dataframe con le metriche per ogni p
 
 run_VAR_rolling <- function(Y_mat, T1, max_p = 12, type = "const") {
@@ -30,7 +30,7 @@ run_VAR_rolling <- function(Y_mat, T1, max_p = 12, type = "const") {
     for (i in 1:(n - T1)) {
       Y_train <- Y_mat[1:(T1 + i - 1), ]
       VAR_fit <- try(VAR(Y_train, p = p, type = type), silent = TRUE)    # Stima del VAR su training corrente
-      # Se la stima dà errore (es. modello singolare), assegno NA
+      # Se la stima da errore (es. modello singolare), assegno NA
       if (inherits(VAR_fit, "try-error")) {
         preds[i, ] <- NA
       } else {
@@ -45,10 +45,10 @@ run_VAR_rolling <- function(Y_mat, T1, max_p = 12, type = "const") {
     sc <- score_forecast(true_vals, preds) 
     sc$p <- p    # aggiungo informazione sul lag usato
     
-    ## Test di stabilità del VAR (modulo massimo delle radici): stimo il VAR sull'intero dataset per verificare se è stabile
+    ## Test di stability del VAR (modulo massimo delle radici): stimo il VAR sull'intero dataset per verificare se stabile
     VAR_full <- try(VAR(Y_mat, p = p, type = type), silent = TRUE)
     if (!inherits(VAR_full, "try-error")) {
-      sc$max_root <- max(abs(roots(VAR_full)))    # radice caratteristica più grande
+      sc$max_root <- max(abs(roots(VAR_full)))    # radice caratteristica piÃ¹ grande
     } else {
       sc$max_root <- NA
     }
