@@ -3,7 +3,7 @@
 ##  Queste funzioni permettono di:
 ##   1) estrarre quali lag sono attivi (coefficiente != 0) per ogni equazione e per ogni struttura HLag (HC, HOO, HE)
 ##   2) convertire la matrice logica in formato "tidy" per la visualizzazione
-##   3) creare il classico “block plot” che mostra la sparsità imposta da BigVAR.
+##   3) creare il classico plot che mostra la sparsity imposta da BigVAR.
 
 
 # Funzione per estrarre, da un oggetto BigVAR.results, quali lag sono attivi per ogni equazione
@@ -18,12 +18,12 @@ get_hlag_activity <- function(res, series_names = NULL, eps = 1e-6) {
     stop("Dimensione inattesa: controllare modello sia un VAR puro (senza esogene) con lagmax = p.")
   }
   
-  # Matrice logica k x p: TRUE se, per quell'equazione e lag, almeno un coefficiente è != 0
+  # Matrice logica k x p: TRUE se, per quell'equazione e lag, almeno un coefficiente Ã¨ != 0
   active <- matrix(FALSE, nrow = k, ncol = p)
   for (ell in 1:p) {
     idx_cols <- ((ell - 1) * k + 1):(ell * k)   # colonne relative al lag ell
     block <- B[, idx_cols, drop = FALSE]       # estraggo blocco k x k del lag ell
-    active[, ell] <- apply(abs(block) > eps, 1, any)   # Verifico se almeno un coefficiente del blocco è diverso da zero
+    active[, ell] <- apply(abs(block) > eps, 1, any)   # Verifico se almeno un coefficiente del blocco Ã¨ diverso da zero
   }
   # Assegno nomi alle righe e alle colonne
   if (!is.null(series_names)) {
