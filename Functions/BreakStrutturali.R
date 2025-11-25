@@ -14,16 +14,15 @@ analisi_break_strutturali <- function(ts_matrix, nome_blocco = "Serie") {
     
     bp <- tryCatch(                                        # Stima breakpoints con robustezza a errori
       breakpoints(y ~ t, data = df, h = 0.15),
-      error = function(e) NULL
-    )
+      error = function(e) NULL)
     if (is.null(bp)) next                                  # Se errore -> salta
     
     pos <- bp$breakpoints                                  # Estrae posizioni dei break
     
     if (!all(is.na(pos))) {                                # Se ci sono break validi
       
-      date_ts  <- time(y)[pos]                             # Converte posizioni in date TS
-      date_fmt <- zoo::as.yearmon(date_ts)                 # Converte in formato anno-mese
+      date_ts  <- time(y)[pos]                             # Converto posizioni in date TS
+      date_fmt <- zoo::as.yearmon(date_ts)                 # Converto in formato anno-mese
       
       # Salvataggio del grafico
       png(
