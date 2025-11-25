@@ -1,7 +1,7 @@
 ## Funzione di analisi serie storiche (ADF, Ljung-Box, ACF, PACF) -----
 analisi_serie_ts <- function(ts_data, max_lag = 36, ljung_lags = c(1,2,3,6,12,18,24,36)){
-  if(!tsibble::is_tsibble(ts_data)) stop("Il dataset deve essere un oggetto tsibble.")
-  
+  if(!tsibble::is_tsibble(ts_data)) stop("Il dataset deve essere un oggetto tsibble.")   # Controllo che l'input sia una tsibble
+  # Seleziono solo le colonne numeriche del dataset
   serie_numeriche <- ts_data[, sapply(ts_data, is.numeric), drop=FALSE]
   plots_acf <- list(); plots_pacf <- list(); ljung_results <- list(); adf_results <- list()
   # Creo cartella per salvare i grafici 
@@ -9,7 +9,7 @@ analisi_serie_ts <- function(ts_data, max_lag = 36, ljung_lags = c(1,2,3,6,12,18
   
   # Ciclo su ogni serie numerica
   for(nome_serie in colnames(serie_numeriche)){
-    serie <- na.omit(as.numeric(serie_numeriche[[nome_serie]]))
+    serie <- na.omit(as.numeric(serie_numeriche[[nome_serie]]))     # Estraggo la serie come vettore numerico e rimuovo eventuali NA
     if(length(serie) < 10) next  
     ts_serie <- ts(serie, frequency = 12)
     
@@ -29,7 +29,7 @@ analisi_serie_ts <- function(ts_data, max_lag = 36, ljung_lags = c(1,2,3,6,12,18
     ljung_results[[nome_serie]] <- data.frame(Lag = ljung_lags, P_Value = round(lb_pvalues,4))
     
     # Test ADF (drift e trend)
-    adf_results[[nome_serie]] <- list()
+    adf_results[[nome_serie]] <- list()    # Inizializzo lista per i risultati ADF della serie corrente
     for(tipo in c("drift","trend")){
       adf_test <- tryCatch(urca::ur.df(ts_serie, type=tipo, selectlags="AIC"), error=function(e) NULL)
       if(!is.null(adf_test)){
@@ -55,6 +55,7 @@ sintesi_risultati_ts <- function(risultati, nome_blocco="Serie"){
   
   # Creo una tabella riepilogativa per ogni serie
   output <- lapply(serie_nomi, function(serie){
+    # Risultati ADF con drift e con trend per la serie corrente
     adf_drift <- risultati$ADF[[serie]][["drift"]]
     adf_trend <- risultati$ADF[[serie]][["trend"]]
     ljung <- risultati$Ljung_Box[[serie]]
@@ -62,14 +63,15 @@ sintesi_risultati_ts <- function(risultati, nome_blocco="Serie"){
     
     tibble(
       Serie = serie,
-      ADF_Drift_Stat = round(adf_drift$Test_Statistic,3),
-      ADF_Drift_Crit_5pct = round(adf_drift$Critical_5pct,3),
-      Stationary_Drift = adf_drift$Stationary,
-      ADF_Trend_Stat = round(adf_trend$Test_Statistic,3),
-      ADF_Trend_Crit_5pct = round(adf_trend$Critical_5pct,3),
-      Stationary_Trend = adf_trend$Stationary,
-      LjungBox_pvalue_lag1 = round(p_value_lag1,4),
-      LjungBox_AnySignificant = any(ljung$P_Value<0.05))}) %>% bind_rows()
+      ADF_Drift_Stat = round(adf_drift$Test_Statistic,3),     # Statistica ADF (drift)
+      ADF_Drift_Crit_5pct = round(adf_drift$Critical_5pct,3),  # Valore critico 5% (drift)
+      Stationary_Drift = adf_drift$Stationary,    # TRUE/FALSE stazionarietà (drift)
+      ADF_Trend_Stat = round(adf_trend$Test_Statistic,3),   # Statistica ADF (trend)
+      ADF_Trend_Crit_5pct = round(adf_trend$Critical_5pct,3),   # Valore critico 5% (trend)
+      Stationary_Trend = adf_trend$Stationary,    # TRUE/FALSE stazionarietà (trend)
+      LjungBox_pvalue_lag1 = round(p_value_lag1,4),   # p-value Ljung-Box al lag 1
+      LjungBox_AnySignificant = any(ljung$P_Value<0.05))}) %>% # TRUE se almeno un lag significativo  
+    bind_rows()    # Unisco tutte le righe in un'unica tabella
   # Sintesi dei risultati
   cat("\n========= RISULTATI SINTETICI:", nome_blocco, "=========\n")
   print(output)
