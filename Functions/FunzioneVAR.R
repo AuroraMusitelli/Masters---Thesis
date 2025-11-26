@@ -1,4 +1,4 @@
-## Funzione per stimare un modello VAR con rolling expanding window   
+## Funzione per stimare un modello VAR con rolling expanding window     
 
 ##   Y_mat : matrice delle serie endogene (T x k)
 ##   T1    : indice che separa training (1:T1) e previsione/CV
@@ -12,54 +12,47 @@
 ##   5) restituisce un dataframe con le metriche per ogni p
 
 run_VAR_rolling <- function(Y_mat, T1, max_p = 12, type = "const") {
+  n <- nrow(Y_mat)
+  k <- ncol(Y_mat)
+  results <- vector("list", max_p)
   
-  n <- nrow(Y_mat)    # numero di osservazioni totali
-  k <- ncol(Y_mat)    # numero di variabili endogene (dimensione del VAR)
-  results <- list()   # lista vuota dove salvare i risultati per ogni lag p
+  # valori veri fuori campione (T1+1,...,n)
+  true_vals <- Y_mat[(T1 + 1):n, , drop = FALSE]
+  colnames_true <- colnames(Y_mat)
   
-  # Loop sui valori del lag p da testare
   for (p in 1:max_p) {
-    message("Stimo VAR con p = ", p)
-    # Matrici per salvare previsioni e valori veri
-    preds <- matrix(NA, n - T1, k)      # memorizza le previsioni 1-step-ahead
-    true_vals <- matrix(NA, n - T1, k)  # memorizza i valori osservati corrispondenti
-    colnames(preds) <- colnames(true_vals) <- colnames(Y_mat)
+    message("Lag p = ", p)
+    preds <- matrix(NA, n - T1, k)
+    colnames(preds) <- colnames_true
     
-    # Rolling expanding window
-    ## Per i = 1,...,(n - T1) si amplia progressivamente l'insieme di training e si genera una previsione 1-step per ogni punto
+    # rolling–expanding
     for (i in 1:(n - T1)) {
-      Y_train <- Y_mat[1:(T1 + i - 1), ]
-      VAR_fit <- try(VAR(Y_train, p = p, type = type), silent = TRUE)    # Stima del VAR su training corrente
-      # Se la stima da errore (es. modello singolare), assegno NA
-      if (inherits(VAR_fit, "try-error")) {
-        preds[i, ] <- NA
-      } else {
+      Y_train <- Y_mat[1:(T1 + i - 1), , drop = FALSE]
+      
+      VAR_fit <- try(VAR(Y_train, p = p, type = type), silent = TRUE)
+      if (!inherits(VAR_fit, "try-error")) {
         fcst <- predict(VAR_fit, n.ahead = 1)$fcst
-        preds[i, ] <- sapply(fcst, function(x) x[1])
-      }
-      # Salvo il valore reale al tempo T1+i
-      true_vals[i, ] <- Y_mat[T1 + i, ]
+        preds[i, ] <- vapply(fcst, function(x) x[1], numeric(1))}
     }
     
-    # Score forecast RMSE, MAE e altre metriche 
-    sc <- score_forecast(true_vals, preds) 
-    sc$p <- p    # aggiungo informazione sul lag usato
+    # score forecast per questo p
+    sc <- score_forecast(true_vals, preds)
+    sc$p <- p
     
-    ## Test di stability del VAR (modulo massimo delle radici): stimo il VAR sull'intero dataset per verificare se stabile
+    # stability (radice massima)
     VAR_full <- try(VAR(Y_mat, p = p, type = type), silent = TRUE)
-    if (!inherits(VAR_full, "try-error")) {
-      sc$max_root <- max(abs(roots(VAR_full)))    # radice caratteristica piÃ¹ grande
+    sc$max_root <- if (!inherits(VAR_full, "try-error")) {
+      max(abs(roots(VAR_full)))
     } else {
-      sc$max_root <- NA
+      NA_real_
     }
-    # Salvo il risultato per questo valore di p
-    results[[paste0("p_", p)]] <- sc
+    
+    results[[p]] <- sc
   }
-  # Combino tutti i risultati per tutti i lag p in un unico dataframe
+  
   final <- do.call(rbind, results)
   rownames(final) <- NULL
-  
-  return(final)
+  final
 }
 
 
