@@ -14,27 +14,14 @@ score_forecast <- function(true, pred) {
   # ---- RMSE relativo ----
   RMSE_rel <- RMSE / sd_y
   
-  # ---- Funzione di interpretazione ----
-  interpret_rmse_rel <- function(r){
-    if (r < 0.10) return("Eccellente")
-    if (r < 0.20) return("Ottimo")
-    if (r < 0.30) return("Buono")
-    if (r < 0.50) return("Accettabile")
-    return("Scarso")
-  }
-  
-  Interpretazione <- sapply(RMSE_rel, interpret_rmse_rel)
-  
   # ---- Output in dataframe ordinato ----
   result <- data.frame(
     Serie = colnames(true),
     RMSE = RMSE,
     MSFE = MSFE,
     MAE = MAE,
-    RMSE_rel = RMSE_rel,
-    Interpretazione = Interpretazione
+    RMSE_rel = RMSE_rel
   )
   
   return(result)
 }
-
