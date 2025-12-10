@@ -1,4 +1,58 @@
-## Funzione per rolling–expanding cross-validation del lag p in un VARX 
+## Previsione 1-step-ahead per un VARX stimato con vars::VAR
+## VARX_obj: oggetto "varest" (con exogen)
+## Y_full:  matrice T×K delle endogene (tutto il campione)
+## X_full:  matrice T×M delle esogene (tutto il campione)
+## t:       tempo da prevedere (usa t-1,...,t-p come lag)
+
+predict_VARX_one_step <- function(VARX_obj, Y_full, X_full, t){
+  varnames <- colnames(Y_full)
+  res      <- rep(NA_real_, length(varnames))
+  names(res) <- varnames
+  
+  for (j in seq_along(varnames)) {
+    fit_j <- VARX_obj$varresult[[j]]     # lm della j-esima equazione
+    beta  <- coef(fit_j)
+    nm    <- names(beta)
+    
+    x <- numeric(length(beta))
+    
+    for (k in seq_along(beta)) {
+      name_k <- nm[k]
+      
+      if (name_k %in% c("(Intercept)", "const")) {
+        # Intercetta
+        x[k] <- 1
+        
+      } else if (name_k %in% colnames(X_full)) {
+        # Variabile esogena
+        x[k] <- X_full[t, name_k]
+        
+      } else if (grepl("\\.l[0-9]+$", name_k)) {
+        # Lag endogeno, tipo "Fossile_Industrial.l1"
+        base <- sub("\\.l[0-9]+$", "", name_k)
+        lag  <- as.integer(sub(".*\\.l", "", name_k))
+        x[k] <- Y_full[t - lag, base]
+        
+      } else {
+        # Qualcosa di inaspettato: per sicurezza segnalo NA
+        x[k] <- NA_real_
+      }
+    }
+    
+    # Se c'è almeno un NA nei regressori usati, la previsione è NA
+    if (any(is.na(x))) {
+      res[j] <- NA_real_
+    } else {
+      res[j] <- sum(beta * x)
+    }
+  }
+  
+  res
+}
+
+
+
+## Funzione per calcolare VARX
 run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
   
   T_tot <- nrow(Y_mat)
@@ -19,7 +73,7 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
       Y_train <- Y_mat[idx_train, , drop = FALSE]
       X_train <- X_mat[idx_train, , drop = FALSE]
       
-      # Stima VARX con esogene
+      # Stima VARX sulla finestra expanding
       VARX_t <- try(
         VAR(
           y      = Y_train,
@@ -29,34 +83,18 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
         ),
         silent = TRUE
       )
+      if (inherits(VARX_t, "try-error")) next
       
-      if (inherits(VARX_t, "try-error")) {
-        next  # salta questa t se la stima fallisce
-      }
-      
-      # Costruisco la riga di regressori per il tempo t (lag su Y_full, esogene X_full)
-      newdata_t <- make_newdata_varx(
-        Y_full = Y_mat,
-        X_full = X_mat,
-        t      = t,
-        p      = p
+      # Previsione 1-step per il tempo t
+      y_hat_t <- tryCatch(
+        predict_VARX_one_step(VARX_t, Y_full = Y_mat, X_full = X_mat, t = t),
+        error = function(e) rep(NA_real_, ncol(Y_mat))
       )
-      
-      # Previsione per ogni equazione via predict.lm
-      y_hat_t <- rep(NA_real_, ncol(Y_mat))
-      for (j in seq_len(ncol(Y_mat))) {
-        fit_j <- VARX_t$varresult[[j]]   # oggetto "lm" per la j-esima serie
-        
-        y_hat_t[j] <- tryCatch(
-          as.numeric(predict(fit_j, newdata = newdata_t)),
-          error = function(e) NA_real_
-        )
-      }
       
       preds_cv[t - T1, ] <- y_hat_t
     }
     
-    # Calcolo RMSE / MSFE / MAE serie per serie (ignorando NA)
+    # Calcolo RMSE / MSFE / MAE serie per serie, ignorando gli NA
     RMSE <- MSFE <- MAE <- rep(NA_real_, ncol(Y_mat))
     
     for (j in seq_len(ncol(Y_mat))) {
@@ -89,3 +127,4 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
   
   dplyr::bind_rows(out_list)
 }
+
