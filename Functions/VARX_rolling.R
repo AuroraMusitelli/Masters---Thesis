@@ -13,66 +13,63 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
     true_cv   <- Y_mat[(T1 + 1):T2, , drop = FALSE]
     colnames(preds_cv) <- colnames(true_cv) <- colnames(Y_mat)
     
-    # Rolling / expanding sulla porzione di CV (T1+1 : T2)
     for (t in (T1 + 1):T2) {
       idx_train <- 1:(t - 1)
       
       Y_train <- Y_mat[idx_train, , drop = FALSE]
+      X_train <- X_mat[idx_train, , drop = FALSE]
       
-      # Esogene di training: X_exog è ***globale*** (serve a predict/all'oggetto VAR)
-      X_exog <<- X_mat[idx_train, , drop = FALSE]
-      
-      # Stima VARX; se fallisce, salta quell’iterazione
+      # Stima VARX con esogene
       VARX_t <- try(
         VAR(
           y      = Y_train,
           p      = p,
           type   = "const",
-          exogen = X_exog
+          exogen = X_train
         ),
         silent = TRUE
       )
       
       if (inherits(VARX_t, "try-error")) {
-        next
+        next  # salta questa t se la stima fallisce
       }
       
-      # Esogene al tempo t per previsione (1-step-ahead)
-      X_fore <- matrix(X_mat[t, , drop = FALSE], nrow = 1)
-      colnames(X_fore) <- colnames(X_exog)
-      
-      fc <- try(
-        predict(VARX_t, n.ahead = 1, dumvar = X_fore)$fcst,
-        silent = TRUE
+      # Costruisco la riga di regressori per il tempo t (lag su Y_full, esogene X_full)
+      newdata_t <- make_newdata_varx(
+        Y_full = Y_mat,
+        X_full = X_mat,
+        t      = t,
+        p      = p
       )
       
-      if (inherits(fc, "try-error")) {
-        next
+      # Previsione per ogni equazione via predict.lm
+      y_hat_t <- rep(NA_real_, ncol(Y_mat))
+      for (j in seq_len(ncol(Y_mat))) {
+        fit_j <- VARX_t$varresult[[j]]   # oggetto "lm" per la j-esima serie
+        
+        y_hat_t[j] <- tryCatch(
+          as.numeric(predict(fit_j, newdata = newdata_t)),
+          error = function(e) NA_real_
+        )
       }
       
-      preds_cv[t - T1, ] <- sapply(fc, function(x) x[1])
+      preds_cv[t - T1, ] <- y_hat_t
     }
     
-    # ---- DEBUG MINIMO: quante previsioni NON-NA abbiamo per questo p? ----
-    cat("p =", p,
-        "  quota non-NA in preds_cv:",
-        mean(!is.na(preds_cv)),
-        "\n")
-    # ----------------------------------------------------------------------
-    # Calcolo RMSE / MSFE / MAE per OGNI SERIE, ignorando gli NA (colonna per colonna)
+    # Calcolo RMSE / MSFE / MAE serie per serie (ignorando NA)
     RMSE <- MSFE <- MAE <- rep(NA_real_, ncol(Y_mat))
     
     for (j in seq_len(ncol(Y_mat))) {
-      yj_true  <- true_cv[, j]
-      yj_hat   <- preds_cv[, j]
-      ok_idx   <- which(!is.na(yj_true) & !is.na(yj_hat))
+      y_true_j <- true_cv[, j]
+      y_hat_j  <- preds_cv[, j]
+      ok       <- which(!is.na(y_true_j) & !is.na(y_hat_j))
       
-      if (length(ok_idx) == 0) {
+      if (length(ok) == 0) {
         RMSE[j] <- NaN
         MSFE[j] <- NaN
         MAE[j]  <- NaN
       } else {
-        err      <- yj_hat[ok_idx] - yj_true[ok_idx]
+        err      <- y_hat_j[ok] - y_true_j[ok]
         MSFE[j] <- mean(err^2)
         RMSE[j] <- sqrt(MSFE[j])
         MAE[j]  <- mean(abs(err))
@@ -92,6 +89,3 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
   
   dplyr::bind_rows(out_list)
 }
-
-
-
