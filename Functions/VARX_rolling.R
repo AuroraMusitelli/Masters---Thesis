@@ -19,19 +19,14 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
       Y_train <- Y_mat[idx_train, , drop = FALSE]
       X_train <- X_mat[idx_train, , drop = FALSE]
       
-      # Stima VARX sulla finestra expanding
+      # Stimo VARX
       VARX_t <- try(
-        VAR(
-          y      = Y_train,
-          p      = p,
-          type   = "const",
-          exogen = X_train
-        ),
+        VAR(y = Y_train, p = p, type = "const", exogen = X_train),
         silent = TRUE
       )
       if (inherits(VARX_t, "try-error")) next
       
-      # Previsione 1-step per il tempo t
+      # Previsione manuale
       y_hat_t <- tryCatch(
         predict_VARX_one_step(VARX_t, Y_full = Y_mat, X_full = X_mat, t = t),
         error = function(e) rep(NA_real_, ncol(Y_mat))
@@ -40,7 +35,7 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
       preds_cv[t - T1, ] <- y_hat_t
     }
     
-    # Calcolo RMSE / MSFE / MAE serie per serie, ignorando gli NA
+    # Valutazione CV serie-per-serie
     RMSE <- MSFE <- MAE <- rep(NA_real_, ncol(Y_mat))
     
     for (j in seq_len(ncol(Y_mat))) {
@@ -49,9 +44,7 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
       ok       <- which(!is.na(y_true_j) & !is.na(y_hat_j))
       
       if (length(ok) == 0) {
-        RMSE[j] <- NaN
-        MSFE[j] <- NaN
-        MAE[j]  <- NaN
+        RMSE[j] = NaN ; MSFE[j] = NaN ; MAE[j] = NaN
       } else {
         err      <- y_hat_j[ok] - y_true_j[ok]
         MSFE[j] <- mean(err^2)
@@ -73,5 +66,7 @@ run_VARX_rolling <- function(Y_mat, X_mat, T1, T2, max_p = 12){
   
   dplyr::bind_rows(out_list)
 }
+
+
 
 
