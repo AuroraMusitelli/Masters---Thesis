@@ -1,9 +1,32 @@
-## Previsione 1-step-ahead per un VARX stimato con vars::VAR
+## FUNZIONE PER COSTRUIRE LA RIGA DI REGRESSORI (lag endogeni + esogene)
+make_newdata_varx <- function(Y_full, X_full, t, p){
+  var_names <- colnames(Y_full)
+  ex_names  <- colnames(X_full)
+  
+  nd_list <- list()
+  
+  # Lag delle variabili endogene
+  for (l in 1:p) {
+    for (j in seq_along(var_names)) {
+      nd_list[[ paste0(var_names[j], ".l", l) ]] <- Y_full[t - l, var_names[j]]
+    }
+  }
+  
+  # Variabili esogene al tempo t
+  for (k in seq_along(ex_names)) {
+    nd_list[[ ex_names[k] ]] <- X_full[t, ex_names[k]]
+  }
+  
+  as.data.frame(nd_list)
+}
+
+
+
+## Previsione 1-step-ahead per un VARX stimato con vars::VAR 
 ## VARX_obj: oggetto "varest" (con exogen)
 ## Y_full:  matrice T×K delle endogene (tutto il campione)
 ## X_full:  matrice T×M delle esogene (tutto il campione)
 ## t:       tempo da prevedere (usa t-1,...,t-p come lag)
-
 predict_VARX_one_step <- function(VARX_obj, Y_full, X_full, t){
   varnames <- colnames(Y_full)
   res      <- rep(NA_real_, length(varnames))
