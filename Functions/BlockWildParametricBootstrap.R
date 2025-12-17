@@ -3,7 +3,7 @@
 #######################################################################################
 # Questa funzione prende la matrice dei residui del modello HVAR e i fitted yhat e genera nsim serie bootstrap multivariate 
 # moving block bootstrap (MBB) sui residui per preservare autocorrelazione nel tempo,
-# wild bootstrap (moltiplica blocchi per +-1) per gestire eteroschedasticit‡
+# wild bootstrap (moltiplica blocchi per +-1) per gestire eteroschedasticit√†
 
 # e : matrice T x K dei residui
 # yhat : matrice T x K con i fitted 
@@ -24,7 +24,7 @@ Res_Block_Wild_BootGenerator <- function(e, nsim = 1, yhat = NULL, H = NULL, L =
   if (!is.null(yhat)) {
     yhat <- as.matrix(yhat)}
   
-  # Fisso il seme per replicabilit‡
+  # Fisso il seme per replicabilit√†
   if (!is.null(Seed)) set.seed(Seed)
   
   # !!Array 3D che conterranno residui e serie bootstrap!!
@@ -33,61 +33,58 @@ Res_Block_Wild_BootGenerator <- function(e, nsim = 1, yhat = NULL, H = NULL, L =
   
   # Scelgo la lunghezza dei blocchi 
   if (!is.null(L)) {
-    blocks_lng <- L    # Se L non Ë NULL, la uso come lunghezza dei blocchi 
+    blocks_lng <- L    # Se L non √® NULL, la uso come lunghezza dei blocchi 
   } else {
-    blocks_lng <- MBB_length_opt(series = e[, 1])    # Se L Ë NULL, chiamo MBB_length_opt sul primo residuo per scegliere la lunghezza ottimale
+    blocks_lng <- MBB_length_opt(series = e[, 1])    # Se L √® NULL, chiamo MBB_length_opt sul primo residuo per scegliere la lunghezza ottimale
   }
   
   # Calcolo il numero di blocchi da concatenare per coprire tutta la serie
   if (!is.null(H)) {
-    blocks_num <- ceiling((Tobs - H) / blocks_lng)   # se H non Ë NULL con forecast adjustment
+    blocks_num <- ceiling((Tobs - H) / blocks_lng)   # se H non √® NULL con forecast adjustment
   } else {
-    blocks_num <- ceiling(Tobs / blocks_lng)}    # se H Ë NULL senza forecast adjustment
+    blocks_num <- ceiling(Tobs / blocks_lng)}    # se H √® NULL senza forecast adjustment
   
   # Applico un moving block bootstrap multivariato sui residui
   # Loop sulle repliche bootstrap b = 1,...,nsim
   for (b in 1:nsim) {
     # Loop sui blocchi i = 1,...,blocks_num per costruire le serie bootstrap
     for (i in 1:blocks_num) {
-      
       # Calcolo gli indici temporali da riempire nel bootstrap
       if (i < blocks_num) {
-        # per tutti i blocchi tranne l'ultimo, la lunghezza Ë esattamente blocks_lng
-        idx_ts  <- ((i - 1) * blocks_lng + 1):(i * blocks_lng)   # !!posizioni nella serie bootstrap!!
-        idx_len <- blocks_lng                                    # !!lunghezza effettiva del blocco!!
+        idx_ts  <- ((i - 1) * blocks_lng + 1):(i * blocks_lng)
+        idx_len <- blocks_lng
       } else {
-        # per l'ultimo blocco, posso avere un pezzo pi˘ corto per arrivare fino a Tobs
-        idx_ts  <- ((i - 1) * blocks_lng + 1):Tobs    # posizioni finali nella serie bootstrap
-        idx_len <- length(idx_ts)                     # lunghezza reale di questo ultimo blocco
+        # per l'ultimo blocco, posso avere un pezzo pi√π corto per arrivare fino a Tobs
+        idx_ts  <- ((i - 1) * blocks_lng + 1):Tobs
+        idx_len <- length(idx_ts)
       }
-      
       # Scelgo casualmente l'endpoint del blocco di residui da copiare
       endpoint <- sample(blocks_lng:Tobs, size = 1)
-      idx_src  <- (endpoint - idx_len + 1):endpoint  # !!indice di sorgente nella serie originale dei residui!!
-      
+      idx_src  <- (endpoint - idx_len + 1):endpoint
       # !!Estraggo il blocco di residui su tutte le K variabili del sistema!!
-      blc <- e[idx_src, , drop = FALSE]     # blocco residui di dimensione idx_len x K
-      
-      # Wild bootstrap (moltiplico tutto il blocco per +-1) per trattare eteroschedasticit‡
+      blc <- e[idx_src, , drop = FALSE]
+      # Wild bootstrap (moltiplico tutto il blocco per +-1) per trattare eteroschedasticit√†
       if (Wild) {
-        w   <- sample(c(-1, 1), 1)
-        blc <- blc * w    # moltiplico l'intero blocco (su tutte le K variabili) per w
+        w <- sample(c(-1, 1), 1)
+        blc <- blc * w
       }
-      
       # Inserisco il blocco nella serie bootstrap dei residui per la replica b
       e_b[idx_ts, , b] <- blc
-      
-      # !!Parte deterministica (fitted) !!
-      if (!is.null(yhat)) {
-        y_b[idx_ts, , b] <- yhat[idx_src, , drop = FALSE]}
-    }     # fine loop sui blocchi i
+    }
     
-    # Serie bootstrap finale per la replica b  -->  y*_t = y_hat + e*_t residui bootstrap
-    y_b[, , b] <- y_b[, , b] + e_b[, , b]
-  } # fine loop sulle repliche bootstrap b
-  
+    # 2) Costruisco la pseudo-serie UNA VOLTA: Y* = Yhat + e*
+    if (!is.null(yhat)) {
+      y_b[,,b] <- yhat + e_b[,,b]
+    } else {
+      y_b[,,b] <- e_b[,,b]
+    }  # fine loop sui blocchi i
+  }
   # !!Ottengo una lista con!!
   #  y_b: le serie bootstrap (Tobs x K x nsim)
   #  e_b: i residui bootstrap (Tobs x K x nsim)
-  return(list(y_b = y_b, e_b = e_b))}
+  return(list(y_b = y_b, e_b = e_b))
+}
+
+
+
 
