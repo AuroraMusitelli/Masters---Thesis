@@ -1,1 +1,0 @@
-Thesis graphics folder
