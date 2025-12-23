@@ -1,9 +1,8 @@
-#######################################################################################
+#######################################################################################   
 ########## Residuals block wild parametric bootstrap (versione multivariata) ##########    GITHUB Class-MovingBlocks
 #######################################################################################
 # Questa funzione prende la matrice dei residui del modello HVAR e i fitted yhat e genera nsim serie bootstrap multivariate 
-# moving block bootstrap (MBB) sui residui per preservare autocorrelazione nel tempo,
-# wild bootstrap (moltiplica blocchi per +-1) per gestire eteroschedasticità
+# moving block bootstrap (MBB) sui residui per preservare autocorrelazione nel tempo, wild bootstrap per gestire eteroschedasticità
 
 # e : matrice T x K dei residui
 # yhat : matrice T x K con i fitted 
@@ -16,34 +15,27 @@ Res_Block_Wild_BootGenerator <- function(e, nsim = 1, yhat = NULL, H = NULL, L =
   e <- as.matrix(e) # !!residui e, trasformo in matrice T x K!!
   Tobs <- nrow(e)   # numero osservazioni
   K    <- ncol(e)   # numero di variabili
-  
   # !!Centro ogni colonna dei residui (media zero per ogni variabile)!!
   e <- scale(e, center = TRUE, scale = FALSE)
-  
   # Converto yhat fitted in matrice 
   if (!is.null(yhat)) {
     yhat <- as.matrix(yhat)}
-  
   # Fisso il seme per replicabilità
   if (!is.null(Seed)) set.seed(Seed)
-  
   # !!Array 3D che conterranno residui e serie bootstrap!!
   e_b <- array(0, dim = c(Tobs, K, nsim))    # Dimensioni: Tobs x K x nsim per i residui
   y_b <- array(0, dim = c(Tobs, K, nsim))    # Dimensioni: Tobs x K x nsim per le serie bootstrap
-  
   # Scelgo la lunghezza dei blocchi 
   if (!is.null(L)) {
     blocks_lng <- L    # Se L non è NULL, la uso come lunghezza dei blocchi 
   } else {
     blocks_lng <- MBB_length_opt(series = e[, 1])    # Se L è NULL, chiamo MBB_length_opt sul primo residuo per scegliere la lunghezza ottimale
   }
-  
   # Calcolo il numero di blocchi da concatenare per coprire tutta la serie
   if (!is.null(H)) {
     blocks_num <- ceiling((Tobs - H) / blocks_lng)   # se H non è NULL con forecast adjustment
   } else {
     blocks_num <- ceiling(Tobs / blocks_lng)}    # se H è NULL senza forecast adjustment
-  
   # Applico un moving block bootstrap multivariato sui residui
   # Loop sulle repliche bootstrap b = 1,...,nsim
   for (b in 1:nsim) {
@@ -71,8 +63,7 @@ Res_Block_Wild_BootGenerator <- function(e, nsim = 1, yhat = NULL, H = NULL, L =
       # Inserisco il blocco nella serie bootstrap dei residui per la replica b
       e_b[idx_ts, , b] <- blc
     }
-    
-    # 2) Costruisco la pseudo-serie UNA VOLTA: Y* = Yhat + e*
+    # Costruisco la pseudo-serie Y* = Yhat + e*
     if (!is.null(yhat)) {
       y_b[,,b] <- yhat + e_b[,,b]
     } else {
