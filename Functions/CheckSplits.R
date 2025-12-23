@@ -3,8 +3,8 @@ check_splits <- function(Y_mat, T1, T2) {
   T_tot <- nrow(Y_mat)
   tibble(
     Fase = c("Training", "CV (BigVAR)", "Test finale"),
-    Start = c(1,        T1 + 1,        T2 + 1),
-    End   = c(T1,       T2,            T_tot),
+    Start = c(1, T1 + 1, T2 + 1),
+    End   = c(T1, T2, T_tot),
     N_osservazioni = End - Start + 1,
     Percentuale = round(100 * N_osservazioni / T_tot, 1))}
 
