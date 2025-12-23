@@ -7,7 +7,7 @@
 ## La funzione:
 ##   1) per ogni lag p = 1,...,max_p stima un VAR in modo ricorsivo usando una rolling expanding window
 ##   2) genera previsioni one-step-ahead fuori campione
-##   3) calcola gli errori di previsione (RMSE, MAE)
+##   3) calcola gli errori di previsione 
 ##   4) verifica la stability del VAR (moduli delle radici)
 ##   5) restituisce un dataframe con le metriche per ogni p
 
@@ -15,7 +15,6 @@ run_VAR_rolling <- function(Y_mat, T1, max_p = 12, type = "const") {
   n <- nrow(Y_mat)
   k <- ncol(Y_mat)
   results <- vector("list", max_p)
-  
   # valori veri fuori campione (T1+1,...,n)
   true_vals <- Y_mat[(T1 + 1):n, , drop = FALSE]
   colnames_true <- colnames(Y_mat)
@@ -25,17 +24,15 @@ run_VAR_rolling <- function(Y_mat, T1, max_p = 12, type = "const") {
     preds <- matrix(NA, n - T1, k)
     colnames(preds) <- colnames_true
     
-    # rolling–expanding
+    # rolling-expanding
     for (i in 1:(n - T1)) {
       Y_train <- Y_mat[1:(T1 + i - 1), , drop = FALSE]
-      
       VAR_fit <- try(VAR(Y_train, p = p, type = type), silent = TRUE)
-      if (!inherits(VAR_fit, "try-error")) {
-        fcst <- predict(VAR_fit, n.ahead = 1)$fcst
+      if (!inherits(VAR_fit, "try-error")) {fcst <- predict(VAR_fit, n.ahead = 1)$fcst
         preds[i, ] <- vapply(fcst, function(x) x[1], numeric(1))}
     }
     
-    # score forecast per questo p
+    # score forecast 
     sc <- score_forecast(true_vals, preds)
     sc$p <- p
     
