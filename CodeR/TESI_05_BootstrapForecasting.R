@@ -22,7 +22,7 @@ library(fpp2)
 library(seastests)
 library(strucchange)
 
-## --- Test di stazionariet‡ e diagnostica ---
+## --- Test di stazionariet√† e diagnostica ---
 library(tseries)         
 library(urca)            
 library(performance) 
@@ -89,7 +89,7 @@ manual_forecast <- function(Y_data, X_data, X_future, beta, p, s, h_ahead) {
 
 
 # 2. DECOMPOSIZIONE & RESIDUI [STEP A, B, D] 
-# [A] TRAMO-SEATS: Estrazione Stagionalit‡ (S) e Serie Destagionalizzata (SA)
+# [A] TRAMO-SEATS: Estrazione Stagionalit√† (S) e Serie Destagionalizzata (SA)
 extract_tramo_components <- function(y) {
   modello <- RJDemetra::tramoseats(ts(y, frequency = 12), spec = "RSA5")
   return(list(s = as.numeric(modello$final$series[,"s"]), sa = as.numeric(modello$final$series[,"sa"])))
@@ -107,7 +107,7 @@ get_hpj_components <- function(y_sa, serie_name) {
 }
 
 
-# [D] SARIMA sulle Esogene: Necessario per prevedere i futuri valori di X_t
+# [D] SARIMA sulle Esogene: prevedere i futuri valori di X_t
 # Estrae i residui eta_t per il bootstrap delle esogene.
 M <- ncol(X_mat)
 modelli_x <- lapply(1:M, function(m) forecast::auto.arima(X_mat[, m]))
@@ -146,7 +146,7 @@ run_full_bootstrap <- function(Y_endog, X_exog, lambda_val, resids_input, type_n
     X_f_b <- sapply(modelli_x, function(m) as.numeric(forecast(m, h = h)$mean))
     
     # 2. Resampling dei residui tramite Wild Block Bootstrap e creazione Pseudo-endogene Y*
-    # Questo passaggio ricrea la variabilit‡ stocastica della Phase 2
+    # ricrea la variabilit√† stocastica della Phase 2
     Y_ps_res <- Res_Block_Wild_BootGenerator(e = res_omega, nsim = 1, yhat = Y_fit_vals, 
                                              L = L_block, Wild = TRUE, Seed = b)
     Y_ps <- Y_endog; Y_ps[(12 + 1):nrow(Y_endog), ] <- Y_ps_res$y_b[,,1]
@@ -186,9 +186,7 @@ export_forecast_results <- function(risultati, type_name) {
 
 
 # 5. ESECUZIONE E VISUALIZZAZIONE 
-# Inizio del monitoraggio temporale totale
 inizio_totale <- Sys.time()
-cat("\n>>> INIZIO ELABORAZIONE COMPLETA:", inizio_totale, "<<<\n")
 
 # --- Elaborazione CO2 ---
 cat("\nAvvio simulazione CO2...")
@@ -205,7 +203,6 @@ tempo_en_end <- Sys.time()
 cat("\nTempo impiegato per Energy:", round(difftime(tempo_en_end, tempo_en_start, units = "mins"), 2), "minuti.\n")
 
 # Esportazione tabelle e plot
-cat("\nSalvataggio risultati e generazione grafici...")
 export_forecast_results(res_CO2, "CO2")
 export_forecast_results(res_EN, "Energy")
 
@@ -248,7 +245,7 @@ plot_thesis_results <- function(risultati, Y_original, type_name) {
          x = "Anno", y = "Ciclo economico",
          color = "Tipo", fill = "") +
     theme_minimal() + 
-    theme(legend.position = "bottom",panel.grid.minor = element_blank(), # Pulisce il grafico
+    theme(legend.position = "bottom",panel.grid.minor = element_blank(), 
           strip.text = element_text(size = 9, face = "bold"),
           axis.text = element_text(size = 8))
   ggsave(paste0("Risultati_Finali/Plot_Completo_", type_name, ".png"), p, width = 14, height = 18)
@@ -261,9 +258,6 @@ print(plot_thesis_results(res_EN, Y_mat_EN, "Energy"))
 
 # Fine del monitoraggio temporale 
 fine_totale <- Sys.time()
-tempo_totale <- difftime(fine_totale, inizio_totale, units = "auto")
+(tempo_totale <- difftime(fine_totale, inizio_totale, units = "auto"))
 
-cat("\nCOMPLETATO CON SUCCESSO")
-cat("\nInizio:", format(inizio_totale, "%H:%M:%S"))
-cat("\nFine:", format(fine_totale, "%H:%M:%S"))
-cat("\nTempo totale di esecuzione:", round(tempo_totale, 2), units(tempo_totale))
+
