@@ -5,7 +5,7 @@ This thesis analyzes the predictive capacity of high-dimensional BigVAR models t
 
 [Time Series Analysis (Italian version)](https://github.com/AuroraMusitelli/Masters---Thesis/blob/main/tesi_TimeSeries.pdf)
 
-📎 Tags: Multivariate Time Series | BigVAR Models | Tramo Seats | Hodrick-Prescott Filter | Bootstrap Forecasting
+📎 Tags: Multivariate Time Series | BigVAR Models | Tramo-Seats | Hodrick-Prescott Filter | Bootstrap Forecasting
 
 
 
